@@ -1,4 +1,8 @@
 const config = {
+    "minProfit":-10,
+    "maxProfit":100,
+    "trailDistance":15,
+
     "assets": [
         {
             "symbol": "LTC",

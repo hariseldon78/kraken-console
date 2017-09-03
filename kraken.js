@@ -33,7 +33,20 @@ const placeOrder = (pair, type, ordertype, price, volume) => {
   });
 };
 
+const getOpenPositions = () => {
+  return new Promise((resolve, reject) => {
+    kraken.api('OpenPositions', {docalcs: true}, (error, data) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(data.result);
+      }
+    })
+  });
+}
+
 module.exports = {
   getBalance,
   placeOrder,
+  getOpenPositions,
 };
