@@ -5,13 +5,15 @@
   "main": "index.js",
   "author": "LabZone",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "positions": "node positions.js"
   },
   "license": "MIT",
   "dependencies": {
     "dotenv": "^4.0.0",
     "kraken-api": "^1.0.0",
     "node-fetch": "^1.7.2",
-    "nodemailer": "^4.1.0"
+    "nodemailer": "^4.1.0",
+    "uuid": "^3.1.0"
   }
 }

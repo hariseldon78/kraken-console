@@ -3,8 +3,9 @@ require('dotenv').config();
 
 const config = require('./config');
 const cc = require('./utils/cc');
-const kraken = require('./kraken');
+const kraken = require('./exchanges/kraken');
 const nodemailer = require('nodemailer');
+const uuid = require('uuid');
 
 let transporter=nodemailer.createTransport({
     service:'gmail',
@@ -14,9 +15,12 @@ let transporter=nodemailer.createTransport({
     }
 });
 
-let minProfit=config.minProfit;
-let maxProfit=config.maxProfit;
-let trailDistance=config.trailDistance;
+let stopLoss=config.positions.stopLoss.P_L;
+const takeProfit=config.positions.takeProfit;
+const trailing=config.positions.stopLoss.trailing;
+const breakEven=config.positions.stopLoss.breakEven;
+
+const quoteCurrency='EUR';//FIXME
 
 const doStuff = () => {
     kraken.getOpenPositions()
@@ -39,31 +43,62 @@ const doStuff = () => {
                 totalPL-=parseFloat(p.fee)*2;
             })
             console.log(`unrealized PL=${totalPL.toFixed(4)}`);
-            console.log(`max possible loss=${-minProfit}, distance=${totalPL-minProfit}`);
+            console.log(`max possible loss=${-stopLoss}, distance=${totalPL-stopLoss}`);
 
-            if (totalPL<minProfit || totalPL>maxProfit) {
-                closeAllPositions(positions);
+            if (totalPL<stopLoss || totalPL>takeProfit) {
+                closeAllPositions(positions,totalPL);
             } else {
-                if ((totalPL-minProfit)>trailDistance){
+                if (trailing.enabled && (totalPL-stopLoss)>trailing.distance){
                     console.log('all is good, trailing up the stopLoss.');
-                    minProfit=totalPL-trailDistance;
+                    stopLoss=totalPL-trailing.distance;
+                }
+                if (breakEven.enabled && totalPL>breakEven.profit) {
+                  stopLoss=0;
                 }
             }
         })
         .catch(error => console.log(error));
 };
 
-const tick = 1000 * 60 * 1;
+const tick = 1000 * 20;
 let monitorIntervalId=setInterval(doStuff, tick);
 doStuff();
 
-function closeAllPositions(positions){
-    clearInterval(monitorIntervalId);
+function closeAllPositions(positions,pl) {
+  clearInterval(monitorIntervalId);
+  Promise.all(positions.map(p=> {
+
+    kraken.placeOrderChecked({
+        pair:p.pair,
+        type:invertOrderType(p.type),
+        ordertype:'market',
+        volume:parseFloat(p.vol)-parseFloat(p.vol_closed),
+        leverage:2
+      })
+      .catch((error)=>{
+        sendMail('ERROR: unable to execute order',`error: ${error}`)
+      });
+  })).then(()=>{
+    sendMail('Positions closed',`your positions were closed with an approximated ${pl>0?'profit':'loss'} of ${pl}`)
+  })
+  // sendMail('Close your positions!')
+
+}
+
+function invertOrderType(t) {
+  if (t=='sell'){
+    return 'buy';
+  } else {
+    return 'sell';
+  }
+}
+function sendMail(subject,text) {
+    if (text===undefined) text=subject;
     const mailOptions={
         from:'positionsMonitor+'+process.env.emailAddress,
         to:process.env.emailTo,
-        subject:'Close your positions!',
-        text:'Close your positions!'
+        subject:subject,
+        text:text
     };
     transporter.sendMail(mailOptions,(error,info)=>{
         if(error) {console.log(error);}
