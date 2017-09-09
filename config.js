@@ -2,15 +2,15 @@ const config = {
   "positions" : {
     /* TODO: Differentiate for each quote currency */
     /* close the positions when the total profit exceed this value (must be positive) */
-    "takeProfit": 19,
+    "takeProfit": 9,
     "stopLoss": {
       /* close the positions when the total loss exceed this value (must be negative)*/
-      "P_L": -20,
+      "P_L": -7,
       "trailing":{
         /* enable the trailing stop loss, moves it toward the profit when the profit grows
           (distance is expressed in terms of profit, not price) */
         "enabled":true,
-        "distance":10
+        "distance":7
       },
       "breakEven":{
         /* moves the stop loss to break even (considering also opening fee * 2)

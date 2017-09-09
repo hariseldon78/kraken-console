@@ -80,39 +80,33 @@ const placeOrderChecked = (options, recursiveCallCount) => {
       .then((orderTs) => {
         options['userref']=orderTs;
         console.log(`Placing order: ${JSON.stringify(options, undefined, 2)}`);
-        kraken.api('AddOrder', options)
-          .catch(e => {
-            // there is an error, but the order could have been received anyway
-            console.log(`error adding order:${e}`);
-            // check if order is passed through
-            wait(4)
-              .then(()=>kraken.api('OpenOrders'))
-              .then(res => {
-                return dictToArray(result.closed)
-                  .filter(order => isSameOrder(order,options))
-                  .length > 0;
-              })
-              .ifTrue(
-                ()=>{resolve()},
-                ()=>{return wait(2)
-                  .then(()=>kraken.api('ClosedOrders',{start: orderTs - 50}))
-                  .then(res => {
-                    return dictToArray(result.open.keys)
-                      .filter(order => isSameOrder(order,options))
-                      .length > 0;
-                  })
-                  .ifTrue(
-                    ()=>{resolve()},
-                    ()=>{
-                      console.log('order not fount, retrying');
-                      return placeOrderAndWaitFill(options,recursiveCallCount-1);
-                    }
-                  )
-                }
-              )
-          })
+        return kraken.api('AddOrder', options)})
+      .then(resolve)
+      .catch(e => {
+        // there is an error, but the order could have been received anyway
+        console.log(`error adding order:${e}`);
+        // check if order is passed through
+        return wait(4)})
+      .then(()=>kraken.api('OpenOrders'))
+      .then(res => {
+        if (dictToArray(result.closed)
+          .filter(order => isSameOrder(order,options))
+          .length > 0) resolve();
+        else throw "not found in open orders";
       })
-
+      .catch(()=>{return wait(2)})
+      .then(()=>kraken.api('ClosedOrders',{start: orderTs - 50}))
+      .then(res => {
+        if (dictToArray(result.open.keys)
+          .filter(order => isSameOrder(order,options))
+          .length > 0) resolve();
+        else
+          throw "not found in closed orders";
+      })
+      .catch(()=>{
+        console.log('order not fount, retrying');
+        return placeOrderChecked(options,recursiveCallCount-1);
+      })
   })
 };
 /*
@@ -142,6 +136,6 @@ const getOpenPositions = () => {
 module.exports = {
   getBalance,
   placeOrder,
-  placeOrderAndWaitFill,
+  placeOrderChecked,
   getOpenPositions,
 };

@@ -43,7 +43,11 @@ const doStuff = () => {
                 totalPL-=parseFloat(p.fee)*2;
             })
             console.log(`unrealized PL=${totalPL.toFixed(4)}`);
-            console.log(`max possible loss=${-stopLoss}, distance=${totalPL-stopLoss}`);
+            if (stopLoss>0) {
+              console.log(`min possible profit=${stopLoss}`)
+            } else {
+              console.log(`max possible loss=${-stopLoss}`);
+            }
 
             if (totalPL<stopLoss || totalPL>takeProfit) {
                 closeAllPositions(positions,totalPL);
@@ -52,7 +56,7 @@ const doStuff = () => {
                     console.log('all is good, trailing up the stopLoss.');
                     stopLoss=totalPL-trailing.distance;
                 }
-                if (breakEven.enabled && totalPL>breakEven.profit) {
+                if (breakEven.enabled && totalPL>breakEven.profit && stopLoss<0) {
                   stopLoss=0;
                 }
             }
