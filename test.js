@@ -1,19 +1,22 @@
 /* Load .env variables to process.env */
 require('dotenv').config();
-// const KrakenClient = require('kraken-api');
-//
-// const kraken = new KrakenClient(process.env.APIKey, process.env.APISign,{timeout:3000});
-//
-const kraken = require('./exchanges/kraken');
+const KrakenClient = require('kraken-api');
 
-// kraken.api('ClosedOrders', {start: 150458000})
-//   .then(res => {
-//     console.log(`closed orders:${JSON.stringify(res, undefined, 2)}`)
-//   })
-//   .catch(error => {
-//     console.log(JSON.stringify(error, undefined, 2));
-//   })
-// ;
+const kraken = new KrakenClient(process.env.APIKey, process.env.APISign,{timeout:3000});
+//
+const krakWrap = require('./exchanges/kraken');
+
+function dictToArray(dict) {
+  return Object.keys(dict).map(k => dict[k]);
+}
+kraken.api('ClosedOrders', {start: 150458000})
+  .then(res => {
+    console.log(`closed orders:${JSON.stringify(res, undefined, 2)}`)
+  })
+  .catch(error => {
+    console.log(JSON.stringify(error, undefined, 2));
+  })
+;
 //
 // function wait(seconds) {
 //   return new Promise(resolve=>{setTimeout(()=>{resolve()},seconds*1000)})
@@ -39,13 +42,13 @@ const kraken = require('./exchanges/kraken');
 //
 //   )
 
-kraken.placeOrderChecked({
-    pair: "XETHZEUR",
-    type: "sell",
-    ordertype: 'market',
-    volume: 0.02,
-    leverage: 2
-  })
-  .catch((error) => {
-    sendMail('ERROR: unable to execute order', `error: ${error}`)
-  });
+// kraken.placeOrderChecked({
+//     pair: "XETHZEUR",
+//     type: "sell",
+//     ordertype: 'market',
+//     volume: 0.02,
+//     leverage: 2
+//   })
+//   .catch((error) => {
+//     sendMail('ERROR: unable to execute order', `error: ${error}`)
+//   });
