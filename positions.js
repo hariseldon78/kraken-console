@@ -128,7 +128,7 @@ function merge(positions) {
 
 function closeAllPositions(positions, pl) {
 	clearInterval(monitorIntervalId);
-	Promise.all(positions.map(p => {
+	positions.forEach(p => {
 
 		kraken.placeOrderChecked({
 				pair: p.pair,
@@ -137,11 +137,12 @@ function closeAllPositions(positions, pl) {
 				volume: parseFloat(p.vol) - parseFloat(p.vol_closed),
 				leverage: 2
 			})
+			.then(() => {
+				sendMail('Positions closed', `your position was closed. Approximated total ${pl > 0 ? 'profit' : 'loss'}: ${pl}`)
+			})
 			.catch((error) => {
 				sendMail('ERROR: unable to execute order', `error: ${error}`)
 			});
-	})).then(() => {
-		sendMail('Positions closed', `your positions were closed with an approximated ${pl > 0 ? 'profit' : 'loss'} of ${pl}`)
 	})
 	// sendMail('Close your positions!')
 

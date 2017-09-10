@@ -72,6 +72,7 @@ Promise.prototype.ifTrue = function (then, _else) {
 }
 
 function isSameOrder(order, options, orderTs) {
+	console.log(`comparing orders: ${JSON.stringify(order)} =?= ${JSON.stringify(options)}; orderTs=${orderTs}`);
 	return order.userref == orderTs && order.descr.pair == options.pair && order.descr.ordertype == options.ordertype;
 }
 
@@ -79,7 +80,7 @@ function dictToArray(dict) {
 	return Object.keys(dict).map(k => dict[k]);
 }
 
-const placeOrderChecked = (options, recursiveCallCount = 5) => {
+const placeOrderChecked = (options, recursiveCallCount = 10) => {
 	return new Promise((resolve, reject) => {
 		// if(recursiveCallCount==undefined)
 		//   recursiveCallCount || 5;
@@ -90,12 +91,17 @@ const placeOrderChecked = (options, recursiveCallCount = 5) => {
 		}
 		krakenTs()
 			.then((ts) => {
-				orderTs = ts;
-				options['userref'] = Math.floor(orderTs);
-				console.log(`Placing order: ${JSON.stringify(options, undefined, 2)}`);
-				return kraken.api('AddOrder', options);
+				orderTs = Math.floor(ts);
+				options['userref'] = orderTs;
+				let order = Object.assign({}, options);
+
+				console.log(`Placing order: ${JSON.stringify(order, undefined, 2)}`);
+				return kraken.api('AddOrder', order);
 			})
-			.then(()=>{resolve()})
+			.then(() => {
+				console.log('resolve 1');
+				resolve();
+			})
 			.catch(e => {
 				// there is an error, but the order could have been received anyway
 				console.log(`error adding order:${e}`);
@@ -106,8 +112,10 @@ const placeOrderChecked = (options, recursiveCallCount = 5) => {
 						console.log(result);
 						if (dictToArray(result.result.open)
 								.filter(order => isSameOrder(order, options, orderTs))
-								.length > 0) resolve();
-						else throw "not found in open orders";
+								.length > 0) {
+							console.log('resolve 2');
+							resolve();
+						} else throw "not found in open orders";
 					})
 					.catch(() => {
 						return wait(4)
@@ -116,7 +124,10 @@ const placeOrderChecked = (options, recursiveCallCount = 5) => {
 								console.log(result);
 								if (dictToArray(result.result.closed)
 										.filter(order => isSameOrder(order, options, orderTs))
-										.length > 0) resolve();
+										.length > 0) {
+									console.log('resolve 3');
+									resolve();
+								}
 								else
 									throw "not found in closed orders";
 							})
