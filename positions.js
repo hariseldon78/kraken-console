@@ -22,9 +22,10 @@ const breakEven = config.positions.stopLoss.breakEven;
 
 // const quoteCurrency = 'EUR';//FIXME
 
-const doStuff = (logger) => {
+const doStuff = (logger, tabler, grapher) => {
 	kraken.getOpenPositions()
 		.then(data => {
+			logger('some positions')
 			let positions = [];
 			for (k in data) {
 				if (data.hasOwnProperty(k)) {
@@ -35,31 +36,42 @@ const doStuff = (logger) => {
 			}
 			// logger(positions);
 			const simplified = merge(positions.map(p => {
-				return {pair:   p.pair,
+				return {
+					pair:       p.pair,
 					type:       p.type,
 					vol:        p.vol,
 					vol_closed: p.vol_closed,
-					fee:        p.fee,
-					netPL:      p.net
+					netPL:      p.net,
+					fee:        p.fee
 				};
-			}));
-
-			logger(`positions:${JSON.stringify(simplified, undefined, 2)}`);
+			})).map(p => {
+				return {
+					pair: p.pair,
+					type: p.type,
+					vol:  (p.vol - p.vol_closed).toFixed(4),
+					net:  (p.netPL - p.fee * 2).toFixed(4)
+				};
+			});
+			// logger(simplified);
+			tabler(simplified);
+			// logger(`positions:${JSON.stringify(simplified, undefined, 2)}`);
 			let totalPL = 0;
 			positions.forEach(p => {
 				totalPL += parseFloat(p.net);
 				totalPL -= parseFloat(p.fee) * 2;
 			});
-			logger(`unrealized PL=${totalPL.toFixed(4)}`);
-			if (stopLoss > 0) {
-				logger(`min possible profit=${stopLoss}`);
-			} else {
-				logger(`max possible loss=${-stopLoss}`);
-			}
+			// logger(`unrealized PL=${totalPL.toFixed(4)}`);
+			// if (stopLoss > 0) {
+			// 	logger(`min possible profit=${stopLoss}`);
+			// }
+			// else {
+			// 	logger(`max possible loss=${-stopLoss}`);
+			// }
 
 			if (totalPL < stopLoss || totalPL > takeProfit) {
 				closeAllPositions(merge(positions), totalPL);
-			} else {
+			}
+			else {
 				if (trailing.enabled && (totalPL - stopLoss) > trailing.distance) {
 					logger('all is good, trailing up the stopLoss.');
 					stopLoss = totalPL - trailing.distance;
@@ -68,6 +80,7 @@ const doStuff = (logger) => {
 					stopLoss = 0;
 				}
 			}
+			grapher([{title:'P/L',value:totalPL},{title:'SL',value:stopLoss}]);
 		})
 		.catch(error => logger(error));
 };
@@ -113,7 +126,8 @@ function merge(positions) {
 				netPL:      p.netPL,
 				fee:        p.fee
 			};
-		} else {
+		}
+		else {
 			result[p.pair].vol += p.vol;
 			result[p.pair].vol_closed += p.vol_closed;
 			result[p.pair].fee += p.fee;
@@ -134,7 +148,7 @@ function closeAllPositions(positions, pl) {
 				ordertype: 'market',
 				volume:    parseFloat(p.vol) - parseFloat(p.vol_closed),
 				leverage:  2
-			})
+			},logger)
 			.then(() => {
 				sendMail('Positions closed', `your position was closed. Approximated total ${pl > 0 ? 'profit' : 'loss'}: ${pl}`);
 			})
@@ -149,7 +163,8 @@ function closeAllPositions(positions, pl) {
 function invertOrderType(t) {
 	if (t === 'sell') {
 		return 'buy';
-	} else {
+	}
+	else {
 		return 'sell';
 	}
 }
@@ -165,15 +180,19 @@ function sendMail(subject, text) {
 	transporter.sendMail(mailOptions, (error, info) => {
 		if (error) {
 			logger(error);
-		} else {
+		}
+		else {
 			logger('Email sent:', info.response);
 		}
 	});
 }
 
-module.exports.start = function (logger) {
-	logger=logger || console.log;
+module.exports.start = function (logger, tabler, grapher) {
+	logger = logger || console.log;
 	const tick = 1000 * 20;
-	/*let monitorIntervalId = */setInterval(()=>{doStuff(logger);}, tick);
-	doStuff(logger);
+	const doit = function () {
+		doStuff(logger, tabler, grapher);
+	};
+	setInterval(doit, tick);
+	doit();
 };

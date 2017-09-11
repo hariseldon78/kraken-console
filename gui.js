@@ -1,5 +1,6 @@
 const blessed = require('blessed');
 const contrib = require('blessed-contrib');
+const config = require('./config');
 
 const screen = blessed.screen();
 
@@ -13,10 +14,10 @@ const grid = new contrib.grid({
 
 
 const graph = grid.set(0, 0, 1, 3, contrib.line, {
-	showNthLabel: 5,
-	maxY:         100,
+	minY:		config.positions.stopLoss.P_L,
+	maxY:       config.positions.takeProfit,
 	label:        'Total P/L',
-	showLegend:   false
+	showLegend:   true
 });
 module.exports.graphPanel=graph;
 
@@ -34,14 +35,8 @@ const positions = grid.set(0, 3, 1, 3, contrib.table,{
 	selectedBg:    'blue',
 	interactive:   true,
 	label:         'Positions',
-	width:         '30%',
-	height:        '30%',
-	border:        {
-		type: 'line',
-		fg:   'cyan'
-	},
-	columnSpacing: 10, /*in chars*/
-	columnWidth:   [10, 8, 8, 8] /*in chars*/
+	columnSpacing: 1, /*in chars*/
+	columnWidth:   [12, 8, 12, 12] /*in chars*/
 });
 module.exports.positionsPanel=positions;
 

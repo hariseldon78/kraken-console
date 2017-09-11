@@ -80,7 +80,7 @@ function dictToArray(dict) {
 	return Object.keys(dict).map(k => dict[k]);
 }
 
-const placeOrderChecked = (options, recursiveCallCount = 10) => {
+const placeOrderChecked = (options, logger, recursiveCallCount = 10) => {
 	return new Promise((resolve, reject) => {
 		// if(recursiveCallCount==undefined)
 		//   recursiveCallCount || 5;
@@ -95,25 +95,25 @@ const placeOrderChecked = (options, recursiveCallCount = 10) => {
 				options['userref'] = orderTs;
 				let order = Object.assign({}, options);
 
-				console.log(`Placing order: ${JSON.stringify(order, undefined, 2)}`);
+				logger(`Placing order: ${JSON.stringify(order, undefined, 2)}`);
 				return kraken.api('AddOrder', order);
 			})
 			.then(() => {
-				console.log('resolve 1');
+				logger('resolve 1');
 				resolve();
 			})
 			.catch(e => {
 				// there is an error, but the order could have been received anyway
-				console.log(`error adding order:${e}`);
+				logger(`error adding order:${e}`);
 				// check if order is passed through
 				return wait(4)
 					.then(() => kraken.api('OpenOrders'))
 					.then(result => {
-						console.log(result);
+						logger(result);
 						if (dictToArray(result.result.open)
 								.filter(order => isSameOrder(order, options, orderTs))
 								.length > 0) {
-							console.log('resolve 2');
+							logger('resolve 2');
 							resolve();
 						} else throw "not found in open orders";
 					})
@@ -121,18 +121,18 @@ const placeOrderChecked = (options, recursiveCallCount = 10) => {
 						return wait(4)
 							.then(() => kraken.api('ClosedOrders', {start: Math.floor(orderTs - 50)}))
 							.then(result => {
-								console.log(result);
+								logger(result);
 								if (dictToArray(result.result.closed)
 										.filter(order => isSameOrder(order, options, orderTs))
 										.length > 0) {
-									console.log('resolve 3');
+									logger('resolve 3');
 									resolve();
 								}
 								else
 									throw "not found in closed orders";
 							})
 							.catch(() => {
-								console.log('order not fount, retrying');
+								logger('order not fount, retrying');
 								return placeOrderChecked(options, recursiveCallCount - 1);
 							})
 					})
