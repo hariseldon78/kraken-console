@@ -11,6 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "blessed": "^0.1.81",
+    "blessed-contrib": "^4.8.5",
     "dotenv": "^4.0.0",
     "kraken-api": "^1.0.0",
     "node-fetch": "^1.7.2",
