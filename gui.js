@@ -13,22 +13,24 @@ const grid = new contrib.grid({
 });
 
 
-const graph = grid.set(0, 0, 1, 3, contrib.line, {
-	minY:		config.positions.stopLoss.P_L,
+const graph = grid.set(0, 0, 1, 4, contrib.line, {
+	minY:       config.positions.stopLoss.P_L,
 	maxY:       config.positions.takeProfit,
-	label:        'Total P/L',
-	showLegend:   true
+	label:      'Total P/L',
+	showLegend: true
 });
-module.exports.graphPanel=graph;
+module.exports.graphPanel = graph;
 
-const log = grid.set(1, 0, 1, 6, contrib.log,{
-	fg:         'green',
-	selectedFg: 'green',
-	label:      'Log'
+const log = grid.set(0, 4, 2, 2, contrib.log, {
+	fg:          'green',
+	selectedFg:  'green',
+	label:       'Log',
+	interactive: true,
+	keys:        true
 });
-module.exports.logPanel=log;
+module.exports.logPanel = log;
 
-const positions = grid.set(0, 3, 1, 3, contrib.table,{
+const positions = grid.set(1, 0, 1, 2, contrib.table, {
 	keys:          true,
 	fg:            'green',
 	selectedFg:    'white',
@@ -36,11 +38,53 @@ const positions = grid.set(0, 3, 1, 3, contrib.table,{
 	interactive:   true,
 	label:         'Positions',
 	columnSpacing: 1, /*in chars*/
-	columnWidth:   [12, 8, 12, 12] /*in chars*/
+	columnWidth:   [12, 6, 10, 10] /*in chars*/
 });
-module.exports.positionsPanel=positions;
+module.exports.positionsPanel = positions;
 
-module.exports.start=function () {
+const commands = grid.set(1, 2, 1, 1, contrib.table, {
+	keys:          true,
+	fg:            'green',
+	selectedFg:    'white',
+	selectedBg:    'blue',
+	interactive:   true,
+	label:         'Commands',
+	columnSpacing: 1, /*in chars*/
+	columnWidth:   [20], /*in chars*/
+	focus:{
+		border:{
+			fg:'white'
+		}
+	}
+});
+module.exports.commandsPanel = commands;
+
+const keys = grid.set(1, 3, 1, 1, contrib.table, {
+	keys:          false,
+	fg:            'green',
+	interactive:   false,
+	label:         'Keys',
+	columnSpacing: 1, /*in chars*/
+	columnWidth:   [5, 20] /*in chars*/
+});
+module.exports.keysPanel = keys;
+
+const focusable = [positions, commands, log];
+let focused = 0;
+
+module.exports.start = function () {
+
+	commands.focus();
+
+	keys.on('click',function(){
+		log.log('keys panel clicked');
+	});
+
+	screen.key(['tab'], function () {
+		focused = (focused + 1) % focusable.length;
+		focusable[focused].focus();
+		log.log(`changing focus:${focused}`);
+	});
 
 	screen.key(['escape', 'q', 'C-c'], function () {
 		return process.exit(0);
@@ -51,7 +95,26 @@ module.exports.start=function () {
 		graph.emit('attach');
 		log.emit('attach');
 		positions.emit('attach');
+		commands.emit('attach');
+		keys.emit('attach');
 	});
 
 	screen.render();
+
+	keys.setData({
+		headers: ['key', 'action'],
+		data:    [['Tab', 'Change focus'], ['Q', 'Quit']]
+	});
+
+	commands.setData({
+		headers: ['command'],
+		data:    [['Close position'],
+			['Flip position'],
+			['Double position'],
+			['New position'],
+			['Move stoploss'],
+			['Move takeprofit']]
+	});
+
+
 };

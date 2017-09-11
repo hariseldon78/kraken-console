@@ -25,7 +25,7 @@ const breakEven = config.positions.stopLoss.breakEven;
 const doStuff = (logger, tabler, grapher) => {
 	kraken.getOpenPositions()
 		.then(data => {
-			logger('some positions')
+			logger('reading positions')
 			let positions = [];
 			for (k in data) {
 				if (data.hasOwnProperty(k)) {
@@ -69,7 +69,7 @@ const doStuff = (logger, tabler, grapher) => {
 			// }
 
 			if (totalPL < stopLoss || totalPL > takeProfit) {
-				closeAllPositions(merge(positions), totalPL);
+				closeAllPositions(merge(positions), totalPL, logger);
 			}
 			else {
 				if (trailing.enabled && (totalPL - stopLoss) > trailing.distance) {
@@ -138,7 +138,7 @@ function merge(positions) {
 	return Object.keys(aggregate).map((k) => asPositive(aggregate[k]));
 }
 
-function closeAllPositions(positions, pl) {
+function closeAllPositions(positions, pl,logger) {
 	clearInterval(monitorIntervalId);
 	positions.forEach(p => {
 
@@ -150,10 +150,10 @@ function closeAllPositions(positions, pl) {
 				leverage:  2
 			},logger)
 			.then(() => {
-				sendMail('Positions closed', `your position was closed. Approximated total ${pl > 0 ? 'profit' : 'loss'}: ${pl}`);
+				sendMail('Positions closed', `your position was closed. Approximated total ${pl > 0 ? 'profit' : 'loss'}: ${pl}`,logger);
 			})
 			.catch((error) => {
-				sendMail('ERROR: unable to execute order', `error: ${error}`);
+				sendMail('ERROR: unable to execute order', `error: ${error}`,logger);
 			});
 	});
 	// sendMail('Close your positions!')
@@ -169,7 +169,7 @@ function invertOrderType(t) {
 	}
 }
 
-function sendMail(subject, text) {
+function sendMail(subject, text, logger) {
 	if (text === undefined) text = subject;
 	const mailOptions = {
 		from:    'positionsMonitor+' + process.env.emailAddress,

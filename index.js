@@ -40,11 +40,12 @@ let tabler = function (objs) {
  */
 let buffers={};
 let grapher= function(current) {
-	logger(current);
+	// logger(current);
 	const t=new Date();
+	const ts=`${t.getHours()}:${t.getMinutes()}`;
 	current.forEach(d=>{
 		if (!buffers[d.title]) buffers[d.title]={title:d.title,x:[],y:[]};
-		buffers[d.title].x.push(t);
+		buffers[d.title].x.push(ts);
 		buffers[d.title].y.push(d.value);
 	});
 	gui.graphPanel.setData(Object.keys(buffers).map(k=>buffers[k]));
@@ -52,4 +53,3 @@ let grapher= function(current) {
 // tabler([{a:1},{b:2,c:1,d:4}]);
 // gui.positionsPanel.setData({headers:['a','b','c','d','e'],data:[[1,2,'c',4,5]]});
 positions.start(logger, tabler, grapher);
-gui.positionsPanel.focus();
