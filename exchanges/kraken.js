@@ -133,7 +133,7 @@ const placeOrderChecked = (options, logger, recursiveCallCount = 10) => {
 							})
 							.catch(() => {
 								logger('order not fount, retrying');
-								return placeOrderChecked(options, recursiveCallCount - 1);
+								return placeOrderChecked(options,logger, recursiveCallCount - 1);
 							})
 					})
 			})

@@ -19,10 +19,11 @@ let stopLoss = config.positions.stopLoss.P_L;
 const takeProfit = config.positions.takeProfit;
 const trailing = config.positions.stopLoss.trailing;
 const breakEven = config.positions.stopLoss.breakEven;
-
 // const quoteCurrency = 'EUR';//FIXME
+let managingPositions=false;
 
 const doStuff = (logger, tabler, grapher) => {
+	if (managingPositions) return;
 	kraken.getOpenPositions()
 		.then(data => {
 			logger('reading positions')
@@ -139,7 +140,7 @@ function merge(positions) {
 }
 
 function closeAllPositions(positions, pl,logger) {
-	clearInterval(monitorIntervalId);
+	managingPositions=true;
 	positions.forEach(p => {
 
 		kraken.placeOrderChecked({
@@ -157,7 +158,7 @@ function closeAllPositions(positions, pl,logger) {
 			});
 	});
 	// sendMail('Close your positions!')
-
+	managingPositions=false;
 }
 
 function invertOrderType(t) {
