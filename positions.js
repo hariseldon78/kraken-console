@@ -152,13 +152,14 @@ function closeAllPositions(positions, pl,logger) {
 			},logger)
 			.then(() => {
 				sendMail('Positions closed', `your position was closed. Approximated total ${pl > 0 ? 'profit' : 'loss'}: ${pl}`,logger);
+				managingPositions=false;
 			})
 			.catch((error) => {
 				sendMail('ERROR: unable to execute order', `error: ${error}`,logger);
+				managingPositions=false;
 			});
 	});
 	// sendMail('Close your positions!')
-	managingPositions=false;
 }
 
 function invertOrderType(t) {

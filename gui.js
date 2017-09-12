@@ -99,6 +99,12 @@ module.exports.start = function () {
 		keys.emit('attach');
 	});
 
+	screen.key('enter',function(){
+		let onEnter=focusable[focused]['onEnter'];
+		if (onEnter)
+			focusable[focused].onEnter();
+	});
+
 	screen.render();
 
 	keys.setData({
@@ -106,15 +112,15 @@ module.exports.start = function () {
 		data:    [['Tab', 'Change focus'], ['Q', 'Quit']]
 	});
 
-	commands.setData({
-		headers: ['command'],
-		data:    [['Close position'],
-			['Flip position'],
-			['Double position'],
-			['New position'],
-			['Move stoploss'],
-			['Move takeprofit']]
-	});
+	// commands.setData({
+	// 	headers: ['command'],
+	// 	data:    [['Close position'],
+	// 		['Flip position'],
+	// 		['Double position'],
+	// 		['New position'],
+	// 		['Move stoploss'],
+	// 		['Move takeprofit']]
+	// });
 
 
 };
