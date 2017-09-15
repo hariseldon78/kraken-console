@@ -73,14 +73,14 @@ Promise.prototype.ifTrue = function (then, _else) {
 
 function isSameOrder(order, options, orderTs) {
 	console.log(`comparing orders: ${JSON.stringify(order)} =?= ${JSON.stringify(options)}; orderTs=${orderTs}`);
-	return order.userref == orderTs && order.descr.pair == options.pair && order.descr.ordertype == options.ordertype;
+	return order.userref == orderTs && /*order.descr.pair == options.pair &&*/ order.descr.ordertype == options.ordertype;
 }
 
 function dictToArray(dict) {
 	return Object.keys(dict).map(k => dict[k]);
 }
 
-const placeOrderChecked = (options, logger, recursiveCallCount = 10) => {
+const placeOrderChecked = (options, logger, recursiveCallCount = 30) => {
 	return new Promise((resolve, reject) => {
 		// if(recursiveCallCount==undefined)
 		//   recursiveCallCount || 5;

@@ -54,51 +54,71 @@ let grapher = function (current) {
 	gui.graphPanel.setData(Object.keys(buffers).map(k => buffers[k]));
 };
 
+function selectedPosition() {
+	return positions.info.positions[gui.positionsPanel.rows.selected];
+}
 
 function populateCommands() {
-	let commands = [ {
+	let commands = [{
 		title:  'Close position',
-		action: function () {
-			logger('Close position action');
+		action: ()=>{
+			logger(`closing position:${JSON.stringify(selectedPosition(),null,2)}`);
+			positions.closePosition(selectedPosition(),logger)
+				.then(()=>logger('Done'),(error)=>logger(`error: ${error}`));
 		}
 	}, {
 		title:  'Flip position',
-		action: function () {
-			logger('Flip position action');
+		action: ()=> {
+			logger(`flipping position:${JSON.stringify(selectedPosition(),null,2)}`);
+			positions.openPositionMultipleOf(selectedPosition(),-2,logger)
+				.then(()=>logger('Done'),(error)=>logger(`error: ${error}`));
 		}
 	}, {
 		title:  'Double position',
-		action: function () {
-			logger('Double position action');
+		action: ()=> {
+			logger(`doubling position:${JSON.stringify(selectedPosition(),null,2)}`);
+			positions.openPositionMultipleOf(selectedPosition(),1,logger)
+				.then(()=>logger('Done'),(error)=>logger(`error: ${error}`));
+		}
+	}, {
+		title:  'Half position',
+		action: ()=> {
+			logger(`doubling position:${JSON.stringify(selectedPosition(),null,2)}`);
+			positions.openPositionMultipleOf(selectedPosition(),-0.5,logger)
+				.then(()=>logger('Done'),(error)=>logger(`error: ${error}`));
 		}
 	}, {
 		title:  'New position',
-		action: function () {
+		action: ()=> {
 			logger('New position action');
 		}
-	},{
+	}, {
 		title:  'Move stop loss',
-		action: function () {
+		action: ()=> {
 			logger('Move stop loss action');
 		}
 	}, {
 		title:  'Move take profit',
-		action: function () {
+		action: ()=> {
 			logger('Move take profit action');
 		}
 	}];
-	let data=[]
-	commands.forEach((c)=>{
+	let data = [];
+	commands.forEach((c) => {
 		data.push([c.title]);
 	});
-	gui.commandsPanel.setData({headers:['command'],data:data});
-	gui.commandsPanel['onEnter']=function(){
+	gui.commandsPanel.setData({
+		headers: ['command'],
+		data:    data
+	});
+	gui.commandsPanel['onEnter'] = function () {
 		commands[gui.commandsPanel.rows.selected].action();
 	};
 
 }
 
 gui.start();
+gui.positionsPanel.focus();
 populateCommands();
 positions.start(logger, tabler, grapher);
 

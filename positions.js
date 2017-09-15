@@ -20,13 +20,20 @@ const takeProfit = config.positions.takeProfit;
 const trailing = config.positions.stopLoss.trailing;
 const breakEven = config.positions.stopLoss.breakEven;
 // const quoteCurrency = 'EUR';//FIXME
-let managingPositions=false;
+let managingPositions = false;
+
+class Info {
+	constructor() {
+		this.positions = [];
+	}
+}
+
+let info = new Info();
 
 const doStuff = (logger, tabler, grapher) => {
 	if (managingPositions) return;
 	kraken.getOpenPositions()
 		.then(data => {
-			logger('reading positions')
 			let positions = [];
 			for (k in data) {
 				if (data.hasOwnProperty(k)) {
@@ -36,7 +43,7 @@ const doStuff = (logger, tabler, grapher) => {
 				}
 			}
 			// logger(positions);
-			const simplified = merge(positions.map(p => {
+			info.positions = merge(positions.map(p => {
 				return {
 					pair:       p.pair,
 					type:       p.type,
@@ -45,16 +52,16 @@ const doStuff = (logger, tabler, grapher) => {
 					netPL:      p.net,
 					fee:        p.fee
 				};
-			})).map(p => {
+			}));
+			// logger(simplified);
+			tabler(info.positions.map(p => {
 				return {
 					pair: p.pair,
 					type: p.type,
 					vol:  (p.vol - p.vol_closed).toFixed(4),
 					net:  (p.netPL - p.fee * 2).toFixed(4)
 				};
-			});
-			// logger(simplified);
-			tabler(simplified);
+			}));
 			// logger(`positions:${JSON.stringify(simplified, undefined, 2)}`);
 			let totalPL = 0;
 			positions.forEach(p => {
@@ -81,7 +88,13 @@ const doStuff = (logger, tabler, grapher) => {
 					stopLoss = 0;
 				}
 			}
-			grapher([{title:'P/L',value:totalPL},{title:'SL',value:stopLoss}]);
+			grapher([{
+				title: 'P/L',
+				value: totalPL
+			}, {
+				title: 'SL',
+				value: stopLoss
+			}]);
 		})
 		.catch(error => logger(error));
 };
@@ -139,27 +152,52 @@ function merge(positions) {
 	return Object.keys(aggregate).map((k) => asPositive(aggregate[k]));
 }
 
-function closeAllPositions(positions, pl,logger) {
-	managingPositions=true;
+function closeAllPositions(positions, pl, logger) {
+	managingPositions = true;
+	let previousPromise = new Promise((resolve) => {
+		resolve();
+	});
 	positions.forEach(p => {
-
-		kraken.placeOrderChecked({
-				pair:      p.pair,
-				type:      invertOrderType(p.type),
-				ordertype: 'market',
-				volume:    parseFloat(p.vol) - parseFloat(p.vol_closed),
-				leverage:  2
-			},logger)
-			.then(() => {
-				sendMail('Positions closed', `your position was closed. Approximated total ${pl > 0 ? 'profit' : 'loss'}: ${pl}`,logger);
-				managingPositions=false;
+		previousPromise = previousPromise.then(() => {
+				return closePosition(p,logger);
 			})
-			.catch((error) => {
-				sendMail('ERROR: unable to execute order', `error: ${error}`,logger);
-				managingPositions=false;
+			.then(() => {
+				sendMail('Positions closed', `your position was closed. Approximated total ${pl > 0 ? 'profit' : 'loss'}: ${pl}`, logger);
+				managingPositions = false;
+			}, (error) => {
+				sendMail('ERROR: unable to execute order', `error: ${error}`, logger);
+				managingPositions = false;
 			});
 	});
 	// sendMail('Close your positions!')
+}
+
+function closePosition(p,logger) {
+	// return kraken.placeOrderChecked({
+	// 	pair:      p.pair,
+	// 	type:      invertOrderType(p.type),
+	// 	ordertype: 'market',
+	// 	volume:    parseFloat(p.vol) - parseFloat(p.vol_closed),
+	// 	leverage:  2
+	// }, logger);
+	return openPositionMultipleOf(p,-1,logger);
+}
+
+// final position=p.vol+coeff*p.vol
+function openPositionMultipleOf(p,coeff,logger) {
+	let pos = Object.assign({}, p);
+	pos.vol-=pos.vol_closed;
+	pos.vol*=coeff;
+	pos=asPositive(pos);
+	logger(`p=${JSON.stringify(p,null,2)}`);
+	logger(`pos=${JSON.stringify(pos,null,2)}`);
+	return kraken.placeOrderChecked(asPositive({
+		pair:      pos.pair,
+		type:      pos.type,
+		ordertype: 'market',
+		volume:    parseFloat(pos.vol) - parseFloat(pos.vol_closed),
+		leverage:  2
+	}), logger);
 }
 
 function invertOrderType(t) {
@@ -188,6 +226,8 @@ function sendMail(subject, text, logger) {
 		}
 	});
 }
+module.exports.closePosition=closePosition;
+module.exports.openPositionMultipleOf=openPositionMultipleOf;
 
 module.exports.start = function (logger, tabler, grapher) {
 	logger = logger || console.log;
@@ -198,3 +238,5 @@ module.exports.start = function (logger, tabler, grapher) {
 	setInterval(doit, tick);
 	doit();
 };
+
+module.exports.info = info;
